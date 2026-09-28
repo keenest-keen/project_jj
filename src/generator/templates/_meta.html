@@ -1,7 +1,7 @@
 {% set m = post.meta_fields %}
 {% set rows = [] %}
 {% if show_location and m.location %}{% set _ = rows.append(('Местонахождение', m.location, None)) %}{% endif %}
-{% if show_mood and m.mood %}{% set _ = rows.append(('Настроение', m.mood, m.mood_icon)) %}{% endif %}
+{% if show_mood and (m.mood or m.mood_icon) %}{% set _ = rows.append(('Настроение', m.mood, m.mood_icon)) %}{% endif %}
 {% if show_music and m.music %}{% set _ = rows.append(('Музыка', m.music, None)) %}{% endif %}
 
 {% if rows or post.tags or (is_private and show_original and post.original_url) %}
