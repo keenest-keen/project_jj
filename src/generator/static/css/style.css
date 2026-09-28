@@ -1,0 +1,321 @@
+/* =====================================================
+   базовое
+   ===================================================== */
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background-color: #091915;
+  background-image: url(../img/background.gif);
+  background-position: center top;
+  background-repeat: repeat;
+  background-attachment: fixed;
+  color: #000;
+  font: normal normal 12pt Verdana, Arial, Helvetica, sans-serif;
+}
+a {
+  color: #9cffc0;
+  text-decoration: none;
+  transition: color .15s, background-color .15s;
+}
+a:hover {
+  color: #f9f5f5;
+  background-color: rgba(9,109,54,.35);
+  text-decoration: underline;
+}
+a:visited { color: #1da65a; }
+a:active  { color: #f9f5f5; }
+
+hr.separator {
+  border: none;
+  border-top: 1px solid #096d36;
+  margin: 6px 0 10px;
+}
+
+/* =====================================================
+   layout
+   ===================================================== */
+.wrapper {
+  max-width: 780px;
+  margin: 12px auto;
+  padding: 0 16px;
+}
+@media (max-width: 600px) {
+  .wrapper { padding: 0 10px; }
+}
+
+.site-header {
+  text-align: center;
+  margin-bottom: 8px;
+}
+.site-title {
+  font: normal bold 17pt Verdana, Arial, Helvetica, sans-serif;
+  color: #096d36;
+}
+
+.site-nav {
+  position: sticky;           /* ← магия */
+  top: 0;                     /* ← к какому краю прилипать */
+  z-index: 100;               /* ← поверх контента, который едет под ним */
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 8px 0;             /* было padding-bottom: 8px — теперь паддинг сверху тоже нужен */
+  background-color: #091915;  /* ← непрозрачный фон, иначе сквозь навигацию будет «просвечивать» контент */
+  border-bottom: 1px solid #096d36;
+}
+
+.site-nav {
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+  animation: nav-shadow linear both;
+  animation-timeline: scroll();
+  animation-range: 0 80px;
+}
+@keyframes nav-shadow {
+  to { box-shadow: 0 4px 10px rgba(0,0,0,.45); }
+}
+
+.site-nav a {
+  margin: 0 10px;
+  display: inline-block;
+  font-size: 12pt;
+}
+.site-nav a.active { color: #f9f5f5; font-weight: bold; }
+.site-nav .nav-home { color: #1da65a; }
+
+.content {
+  background-color: #a7c4b4;
+  border: 6px solid #096d36;
+  padding: 20px 24px;
+  /* border-radius: 6px; */
+  line-height: 1.55;
+}
+@media (max-width: 600px) {
+  .content { padding: 12px 14px; }
+}
+
+.site-footer {
+  text-align: center;
+  margin-top: 16px;
+  color: #096d36;
+  font-size: 9.5pt;
+}
+
+/* =====================================================
+   пост в списке
+   ===================================================== */
+.post-preview { margin-bottom: 32px; }
+
+.post-preview .date,
+.post-full .date {
+  font: normal bold 14pt Verdana, Arial, Helvetica, sans-serif;
+  color: #096d36;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.post-head {
+  margin: 2px 0 8px;
+  line-height: 1.35;
+}
+.post-time {
+  color: #000;
+  font-weight: bold;
+  margin-right: 2px;
+  font-size: 12pt;
+}
+.subjlink, .subjlink:visited {
+  color: #096d36;
+  font-weight: bold;
+  font-size: 14pt;
+}
+.subjlink:hover {
+  color: #f9f5f5;
+  background-color: rgba(9,109,54,.65);
+  text-decoration: none;
+}
+.post-title-full {
+  color: #096d36;
+  font-weight: bold;
+  font-size: 14pt;
+}
+
+.post-body {
+  color: #000;
+}
+.post-body img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* =====================================================
+   details/кат
+   ===================================================== */
+/* Разрешаем transition к height/block-size: auto */
+:root { interpolate-size: allow-keywords; }
+
+details.cut {
+  margin: 10px 0;
+  border-left: 2px solid #096d36;
+  padding-left: 9px;
+}
+
+/* ===== Плавное раскрытие/закрытие ===== */
+details.cut::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition:
+    block-size 0.3s ease,
+    content-visibility 0.3s allow-discrete;
+}
+details.cut[open]::details-content {
+  block-size: auto;
+}
+
+/* ===== Summary: внешний вид ===== */
+details.cut > summary.cut-summary {
+  cursor: pointer;
+  color: #096d36;
+  font-weight: bold;
+  user-select: none;
+  list-style: none;
+  padding-left: 3px;
+}
+details.cut > summary.cut-summary::-webkit-details-marker { display: none; }
+
+/* ===== Стрелка (::before) — её вращаем ===== */
+details.cut > summary.cut-summary::before {
+  content: "▶";
+  display: inline-block;      /* обязательно для transform */
+  margin-right: 6px;
+  margin-bottom: 2px;
+  transition: transform 0.2s ease;
+}
+details.cut[open] > summary.cut-summary::before {
+  transform: rotate(90deg);   /* ▶ → ▼ визуально, но плавно */
+}
+
+/* ===== Текст (::after) — берём из data-атрибутов ===== */
+details.cut > summary.cut-summary::after {
+  content: attr(data-expand);
+}
+details.cut[open] > summary.cut-summary::after {
+  content: attr(data-collapse);
+}
+
+/* ===== Hover ===== */
+details.cut > summary.cut-summary:hover {
+  color: #f9f5f5;
+  background-color: rgba(9,109,54,.35);
+}
+
+.cut-content { margin-top: 0; }
+
+/* =====================================================
+   мета
+   ===================================================== */
+ul.meta {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 10.5pt;
+  color: #000;
+}
+ul.meta li { margin: 3px 0; }
+.meta-label { color: #000; font-weight: bold; margin-right: 1px; }
+.meta-value { color: #000; }
+.meta-tag { color: #9cffc0; }
+.mood-icon {
+  vertical-align: middle;
+  width: 18px; height: 18px;
+}
+
+/* «(открыть пост)» */
+.open-post {
+  text-align: right;
+  /* margin-top: 8px; */
+  color: #000;
+  font-size: 10.5pt;
+}
+.open-post a { color: #9cffc0; }
+
+/* =====================================================
+   страница поста
+   ===================================================== */
+.post-nav {
+  margin-top: 28px;
+  padding-top: 12px;
+  border-top: 1px dashed #096d36;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.post-nav a { max-width: 48%; color: #096d36; font-weight: bold; }
+.post-nav a:hover { color: #f9f5f5; }
+
+/* =====================================================
+   пагинация
+   ===================================================== */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid #096d36;
+}
+.pagination a { font-weight: bold; }
+
+/* =====================================================
+   теги
+   ===================================================== */
+/* .tag-cloud { line-height: 2.2; } */
+.tag-cloud .tag { margin-right: 4px; }
+.tag-cloud .tag-count {
+  color: #063d1e;
+  font-size: 9.5pt;
+  vertical-align: super;
+  margin-right: 12px;
+}
+ul.tag {
+  padding: 0;
+  margin: 6px 14px 0;
+  font-size: 10.5pt;
+  color: #000;
+}
+
+/* =====================================================
+   профиль
+   ===================================================== */
+dl.profile dt {
+  color: #096d36;
+  font-weight: bold;
+  margin-top: 10px;
+}
+dl.profile dd { margin: 0 0 4px 0; color: #000; }
+
+/* =====================================================
+   бейджи
+   ===================================================== */
+.badge-vis, .badge-private {
+  display: inline-block;
+  font-size: 8pt;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #096d36;
+  color: #fff;
+  vertical-align: middle;
+  margin: 0 3px 3px 1px;
+  font-weight: normal;
+
+
+}
+.badge-private { background: #b00; margin-left: 12px; }
+.badge-eye { color: black; }
+
+/* =====================================================
+   заголовки страниц
+   ===================================================== */
+.list-header {
+  color: #096d36;
+  font-size: 14pt;
+  margin-top: 0;
+}
