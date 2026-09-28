@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{% if page_title %}{{ page_title }} — {{ blog_title }}{% else %}{{ blog_title }}{% endif %}{% endblock %}
+
+{% block content %}
+  {% if page_title %}
+    <h1 class="list-header">Посты с тегом «{{ page_title }}»</h1>
+  {% endif %}
+
+  {% for post in page.posts %}
+    {% set prev = page.posts[loop.index0 - 1] if loop.index0 > 0 else None %}
+    {% set prev_date = prev.datetime.date() if prev and prev.datetime else None %}
+    {% set show_date = (post.datetime and post.datetime.date() != prev_date) %}
+    {% with post=post, show_date=show_date, is_private=is_private %}
+      {% include "_post_preview.html" %}
+    {% endwith %}
+  {% endfor %}
+
+  <nav class="pagination">
+    {% if page.prev_url %}<a href="{{ base }}{{ page.prev_url }}" class="pg-newer">← новые</a>{% endif %}
+    {% if page.next_url %}<a href="{{ base }}{{ page.next_url }}" class="pg-older">старые →</a>{% endif %}
+  </nav>
+{% endblock %}

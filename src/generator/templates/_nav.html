@@ -1,0 +1,8 @@
+<nav class="site-nav">
+  {% for label, url in nav_items %}
+    <a href="{{ base }}{{ url }}"{% if url == nav_active %} class="active"{% endif %}>{{ label }}</a>
+  {% endfor %}
+  {% if nav_home_site %}
+    <a class="nav-home" href="{{ base }}{{ nav_home_site[1] }}">{{ nav_home_site[0] }}</a>
+  {% endif %}
+</nav>

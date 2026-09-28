@@ -1,0 +1,20 @@
+{# контекст: post, show_date, is_private, base #}
+<article class="post-preview">
+  {% if show_date %}
+    <div class="date">{{ post.datetime|fmt_date }}</div>
+    <hr class="separator">
+  {% endif %}
+  <div class="post-head">
+    <span class="post-time">{{ post.datetime|fmt_time }}</span>
+    <a class="subjlink" href="{{ base }}{{ post.filename }}">{{ post.display_title }}</a>
+    {% if is_private and post.visibility != 'public' %}<span class="badge-vis">{{ post.visibility }}</span>{% endif %}
+    {% if is_private and post.visibility == 'private' %}<span class="badge-eye">👁</span>{% endif %}
+  </div>
+  <div class="post-body">
+    {{ post|render_visible|safe }}
+  </div>
+  {% include "_meta.html" %}
+  <div class="open-post">
+    (<a href="{{ base }}{{ post.filename }}"> открыть пост </a>)
+  </div>
+</article>

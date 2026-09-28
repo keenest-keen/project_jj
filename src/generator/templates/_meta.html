@@ -1,0 +1,31 @@
+{% set m = post.meta_fields %}
+{% set rows = [] %}
+{% if show_location and m.location %}{% set _ = rows.append(('Местонахождение', m.location, None)) %}{% endif %}
+{% if show_mood and m.mood %}{% set _ = rows.append(('Настроение', m.mood, m.mood_icon)) %}{% endif %}
+{% if show_music and m.music %}{% set _ = rows.append(('Музыка', m.music, None)) %}{% endif %}
+
+{% if rows or post.tags or (is_private and show_original and post.original_url) %}
+<ul class="meta">
+  {% for label, value, icon in rows %}
+    <li>
+      <span class="meta-label">{{ label }}:</span>
+      {% if icon %}<img class="mood-icon" src="{{ mood_dir }}/{{ icon }}.gif" alt="{{ icon }}" title="{{ icon }}">{% endif %}
+      <span class="meta-value">{{ value }}</span>
+    </li>
+  {% endfor %}
+  {% if post.tags %}
+    <li>
+      <span class="meta-label">Теги:</span>
+      {% for t in post.tags -%}
+        <a class="meta-tag" href="{{ base }}tag/{{ t|tag_slug }}.html">{{ t }}</a>{% if not loop.last %}, {% endif %}
+      {%- endfor %}
+    </li>
+  {% endif %}
+  {% if is_private and show_original and post.original_url %}
+    <li>
+      <span class="meta-label">Оригинал:</span>
+      <a href="{{ post.original_url }}">{{ post.original_url }}</a>
+    </li>
+  {% endif %}
+</ul>
+{% endif %}

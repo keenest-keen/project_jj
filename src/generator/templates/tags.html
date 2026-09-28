@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Теги{% endblock %}
+{% block content %}
+<h1 class="list-header">Теги</h1>
+<div class="tag-cloud">
+  <ul class="tag">
+  {% for item in tags_view %}
+    <li>
+      <a class="tag" style="font-size: {{ item.size }}px"
+        href="{{ base }}tag/{{ item.tag.slug }}.html">{{ item.tag.name }}</a>
+      <span class="tag-count">{{ item.tag.count }}</span>
+    </li>
+  {% endfor %}
+  </ul>
+</div>
+{% endblock %}

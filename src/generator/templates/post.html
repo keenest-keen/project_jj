@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ post.display_title }} — {{ blog_title }}{% endblock %}
+
+{% block content %}
+<article class="post-full">
+  <div class="date">{{ post.datetime|fmt_date }}</div>
+  <hr class="separator">
+
+  <div class="post-head">
+    <span class="post-time">{{ post.datetime|fmt_time }}</span>
+    <span class="post-title-full">{{ post.display_title }}</span>
+    {% if is_private and post.visibility != 'public' %}<span class="badge-vis">{{ post.visibility }}</span>{% endif %}
+    {% if is_private and post.visibility == 'private' %}<span class="badge-eye">👁</span>{% endif %}
+  </div>
+
+  <div class="post-body">{{ full_html|safe }}</div>
+
+  {% include "_meta.html" %}
+
+  <nav class="post-nav">
+    {% if newer %}<a class="pn-newer" href="{{ base }}{{ newer.filename }}">← {{ newer.display_title }}</a>{% endif %}
+    {% if older %}<a class="pn-older" href="{{ base }}{{ older.filename }}">{{ older.display_title }} →</a>{% endif %}
+  </nav>
+</article>
+{% endblock %}

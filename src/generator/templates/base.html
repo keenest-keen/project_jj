@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ blog_title }}{% endblock %}</title>
+<link rel="stylesheet" href="{{ base }}css/style.css">
+</head>
+<body>
+<div class="wrapper">
+
+  <header class="site-header">
+    <a class="site-title" href="{{ base }}./">{{ blog_title }}</a>
+    {% if is_private %}<span class="badge-private">private build</span>{% endif %}
+  </header>
+
+  {% include "_nav.html" %}
+
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <span class="siteplug">сгенерировано {{ generated_at }}</span>
+  </footer>
+
+</div>
+</body>
+</html>
