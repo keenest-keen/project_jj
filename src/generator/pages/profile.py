@@ -12,7 +12,8 @@ import config
 
 def generate(env: Environment, posts_desc: list[Post], stats: Stats) -> None:
     tpl = env.get_template("profile.html")
-    last = posts_desc[0] if posts_desc else None
+    non_pinned = [p for p in posts_desc if p.pin != True]
+    last = non_pinned[0] if non_pinned else None
     html = tpl.render(
         title=config.PROFILE_TITLE,
         fields=config.PROFILE_FIELDS,

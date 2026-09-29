@@ -26,6 +26,7 @@ class Post:
     meta_fields: dict[str, str]
     visible_html: str         # с <cut id="..."/> маркерами
     cuts: list[Cut]
+    pin: Optional[bool] = False
 
     # рассчитывается позже
     filename: str = ""        # "77645.html"

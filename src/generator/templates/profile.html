@@ -8,6 +8,6 @@
   {% endfor %}
   <dt>Всего постов</dt><dd>{{ total_posts }}</dd>
   <dt>Последний пост</dt><dd>{{ last_post_date|fmt_date_short }}</dd>
-  <dt>Журнал обновлён</dt><dd>{{ generated_at }}</dd>
+  <dt>Журнал обновлён</dt><dd>{{ generated_at|fmt_date_short }}</dd>
 </dl>
 {% endblock %}

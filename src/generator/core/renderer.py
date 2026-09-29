@@ -66,7 +66,7 @@ def base_context(base: str = "", nav_active: str = "") -> dict:
         "nav_home_site": config.NAV_HOME_SITE,
         "nav_active":    nav_active,
         "mood_dir":      config.MOOD_ICONS_DIR,
-        "generated_at":  config.GENERATED_AT.strftime("%d.%m.%Y"),
+        "generated_at":  config.GENERATED_AT,
         "show_location": config.SHOW_LOCATION,
         "show_mood":     config.SHOW_MOOD,
         "show_music":    config.SHOW_MUSIC,

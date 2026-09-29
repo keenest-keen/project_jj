@@ -68,6 +68,7 @@ def load_post(path: Path) -> Post | None:
         visible_html=visible_html,
         cuts=cuts,
         sort_key=sort_key,
+        pin=data.get("pin"),
     )
 
 

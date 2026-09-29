@@ -1,7 +1,9 @@
 {# контекст: post, show_date, is_private, base #}
 <article class="post-preview">
   {% if show_date %}
-    <div class="date">{{ post.datetime|fmt_date }}</div>
+      <div class="date">
+        {% if post.pin %}<span class="pin">📌</span>{% endif %}
+        {{ post.datetime|fmt_date }}</div>
     <hr class="separator">
   {% endif %}
   <div class="post-head">
