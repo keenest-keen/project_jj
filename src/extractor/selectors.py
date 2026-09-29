@@ -10,6 +10,7 @@ VISIBILITY_CLASSES = {
     "i-posticon-public":   "public",
     "i-posticon-private":  "private",
     "i-posticon-friends":  "friends",
+    "i-posticon-friendsonly": "custom",
 }
 VISIBILITY_IMG_RE = re.compile(r"icon_(public|private|friends)", re.I)
 
@@ -30,3 +31,8 @@ YMD_PATH_RE = re.compile(r"/(\d{4})/(\d{2})/(\d{2})/?$")
 YM_PATH_RE  = re.compile(r"/(\d{4})/(\d{2})/?$")
 Y_PATH_RE   = re.compile(r"/(\d{4})/?$")
 TIME_IN_TEXT_RE = re.compile(r"(\d{1,2}):(\d{2})(?::(\d{2}))?")
+
+# --- признак «custom friends group» ---
+# <li class="b-singlepost-meta-item-groups">… Custom friends groups: …
+GROUPS_META_ITEM_RE  = re.compile(r"\bb-singlepost-meta-item-groups\b")
+GROUPS_ICON_SRC_RE   = re.compile(r"icon_groups\b", re.I)

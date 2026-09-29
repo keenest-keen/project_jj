@@ -10,10 +10,10 @@ from datetime import datetime
 # Пути
 # ============================================================
 BASE_DIR       = Path(__file__).resolve().parent
-JSON_DIR       = (BASE_DIR / "../../cache_test").resolve()   # откуда читаем посты
+JSON_DIR       = (BASE_DIR / "../../cache").resolve()   # откуда читаем посты
 TEMPLATES_DIR  = BASE_DIR / "templates"
 STATIC_DIR     = BASE_DIR / "static"
-MOOD_ICONS_DIR = STATIC_DIR / "img/mood"
+MOOD_ICONS_DIR = "img/mood"
 OUTPUT_DIR     = (BASE_DIR / "../../" / "blog").resolve()
 
 # ============================================================
@@ -21,7 +21,7 @@ OUTPUT_DIR     = (BASE_DIR / "../../" / "blog").resolve()
 # ============================================================
 BLOG_TITLE          = "лытдыбр наикинейшего"
 POSTS_PER_PAGE      = 20
-DEFAULT_EXPAND_TEXT = "Читать далее..."
+DEFAULT_EXPAND_TEXT = "читать далее..."
 DEFAULT_COLLAPSE_TEXT = "Свернуть"
 POST_FILENAME_TPL   = "{stem}.html"          # 77645.json -> 77645.html
 PAGINATION_TPL      = "index-{offset}.html"  # index-20.html, index-40.html
@@ -71,7 +71,7 @@ NAV_HOME_SITE = ("На сайт", "../")  # set None, чтобы убрать
 # ============================================================
 # Профиль (статическая часть)
 # ============================================================
-PROFILE_TITLE = "О журнале"
+PROFILE_TITLE = "О блоге"
 
 PROFILE_FIELDS = [
     ("Журнал создан",   "1 августа 2007"),

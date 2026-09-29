@@ -10,6 +10,7 @@ class Stats:
     posts_public: int = 0
     posts_private: int = 0
     posts_friends: int = 0
+    posts_custom: int = 0
 
     pages_index: int = 0
     pages_post: int = 0
@@ -32,6 +33,7 @@ class Stats:
         lines.append(f"  public:              {self.posts_public}")
         lines.append(f"  private:             {self.posts_private}")
         lines.append(f"  friends:             {self.posts_friends}")
+        lines.append(f"  custom:              {self.posts_custom}")
         lines.append("")
         lines.append("Сгенерировано файлов:")
         lines.append(f"  index-*.html:        {self.pages_index}")

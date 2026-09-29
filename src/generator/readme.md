@@ -1,11 +1,8 @@
-README.md
-markdown
-
-# bloggen
+# project jj
 
 Генератор статического блога. Читает JSON-посты (экспорт из ЖЖ-подобного
-дневника) и складывает готовые HTML-страницы в `output/blog/`, откуда
-их можно заливать по FTP в папку `/blog/` на сайте.
+дневника) и складывает готовые HTML-страницы в `/blog/`, откуда их можно
+заливать по FTP в папку `/blog/` на сайте.
 
 ## Быстрый старт
 
@@ -14,11 +11,18 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install jinja2
 
-python3 main.py             # только public-посты
-python3 main.py --private   # всё, включая private/friends + ссылки на оригинал
-python3 main.py -v          # + debug-логи
-```
+# через дефолты из config.py, только public-посты
+python3 main.py
 
+# тест на другой коллекции, в другую папку
+python3 main.py --json-dir ~/projects/blog/cache_test --output-dir ~/projects/blog/blog_test -v
+
+# рабочий прогон
+python3 main.py --json-dir ../../cache_prod --output-dir ../../blog
+
+# всё, включая private/friends
+python3 main.py --json-dir ../../cache_prod --output-dir ../../blog --private -v
+```
 Результат — в output/blog/. Папка при каждом запуске пересоздаётся с нуля.
 
 В конце генерации в stdout печатается статистика: сколько постов, сколько

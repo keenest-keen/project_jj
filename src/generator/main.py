@@ -1,16 +1,19 @@
 """Точка входа.
 
 Использование:
-    python main.py             # только public
-    python main.py --private   # все посты (public + private + friends)
+    python main.py                              # только public
+    python main.py --private                    # все посты (public + private + friends)
+    python main.py --json-dir PATH              # откуда читать JSON
+    python main.py --output-dir PATH            # куда писать результат
+    python main.py --json-dir a --output-dir b -v
 """
 from __future__ import annotations
 import argparse
 import logging
 import shutil
 import sys
+from pathlib import Path
 import time
-from collections import Counter
 
 import config
 from core import files, runtime
@@ -29,6 +32,10 @@ def parse_args():
     ap = argparse.ArgumentParser(description="Генератор блога")
     ap.add_argument("--private", action="store_true",
                     help="включить private/friends посты")
+    ap.add_argument("--json-dir", type=Path, default=None,
+                    help="папка с JSON-постами (по умолчанию из config.py)")
+    ap.add_argument("--output-dir", type=Path, default=None,
+                    help="папка для сгенерированного сайта (по умолчанию из config.py)")
     ap.add_argument("-v", "--verbose", action="store_true")
     return ap.parse_args()
 
@@ -38,6 +45,14 @@ def setup_logging(verbose: bool):
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
     )
+
+
+def apply_overrides(args) -> None:
+    """Переопределяет пути в config значениями из командной строки."""
+    if args.json_dir is not None:
+        config.JSON_DIR = args.json_dir.expanduser().resolve()
+    if args.output_dir is not None:
+        config.OUTPUT_DIR = args.output_dir.expanduser().resolve()
 
 
 def clean_output():
@@ -55,6 +70,8 @@ def collect_stats(posts, stats: Stats):
             stats.posts_private += 1
         elif p.visibility == "friends":
             stats.posts_friends += 1
+        else:
+            stats.posts_custom += 1
         for t in p.tags:
             stats.tags[t] += 1
         m = p.meta_fields.get("mood")
@@ -77,22 +94,23 @@ def main():
     args = parse_args()
     setup_logging(args.verbose)
     runtime.IS_PRIVATE = args.private
+    apply_overrides(args)
 
     allowed = {"public", "private", "friends"} if args.private else config.PUBLIC_VISIBILITIES
 
     log = logging.getLogger("main")
     log.info("режим: %s", "PRIVATE (все посты)" if args.private else "PUBLIC")
+    log.info("JSON_DIR:   %s", config.JSON_DIR)
+    log.info("OUTPUT_DIR: %s", config.OUTPUT_DIR)
 
     if not config.JSON_DIR.exists():
         log.error("нет папки с JSON: %s", config.JSON_DIR)
         sys.exit(1)
 
     start_time = time.perf_counter()
-
-    log.info("читаю посты из %s", config.JSON_DIR)
+    log.info("читаю посты")
     posts = load_all(config.JSON_DIR, allowed)
 
-    # заполняем производные поля
     for p in posts:
         p.filename = config.POST_FILENAME_TPL.format(stem=p.stem)
 

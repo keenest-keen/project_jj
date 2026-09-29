@@ -93,7 +93,7 @@ article:
 ```bash
 source .venv/bin/activate
 cd src
-python3 -m extractor.batch ../data --cache ../cache
+python3 -m extractor.batch ../data_test --cache ../cache
 ```
 
 Один или несколько файлов:

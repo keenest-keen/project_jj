@@ -27,7 +27,10 @@ def render_visible(post: Post) -> str:
         if cut is None:
             log.warning("пост %s: кат %r без содержимого", post.stem, cid)
             return ""
-        label_expand = cut.expand_text or config.DEFAULT_EXPAND_TEXT
+
+        bayany = 'баяны, ругань и чёрный юмор' if 'баяны' in post.tags else None
+
+        label_expand = cut.expand_text or bayany or config.DEFAULT_EXPAND_TEXT
         label_collapse = cut.collapse_text or config.DEFAULT_COLLAPSE_TEXT
         # summary не должен содержать html, иначе браузер его стрипает странно
         return (

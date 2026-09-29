@@ -10,6 +10,7 @@ from .cleanup import normalize_hrefs
 from .meta import extract_meta_fields
 from .fields import (
     extract_title, extract_tags, extract_original_url, extract_visibility,
+    extract_id,
 )
 
 
@@ -23,6 +24,7 @@ def parse_file(path: Path) -> dict[str, Any]:
     visible_html, cuts = split_cuts(inner)
 
     return {
+        "id":           extract_id(path, soup),
         "title":        extract_title(soup),
         "datetime":     extract_datetime(soup),
         "original_url": extract_original_url(soup),

@@ -9,7 +9,14 @@
   {% for label, value, icon in rows %}
     <li>
       <span class="meta-label">{{ label }}:</span>
-      {% if icon %}<img class="mood-icon" src="{{ mood_dir }}/{{ icon }}.gif" alt="{{ icon }}" title="{{ icon }}">{% endif %}
+      {% if icon %}
+        <img
+          class="mood-icon"
+          src="{% if page_kind == 'tag' %}../{% endif %}{{ mood_dir }}/{{ icon }}.gif"
+          alt="{{ icon }}"
+          title="{{ icon }}"
+        />
+      {% endif %}
       <span class="meta-value">{{ value }}</span>
     </li>
   {% endfor %}

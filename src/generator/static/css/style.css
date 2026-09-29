@@ -106,8 +106,9 @@ hr.separator {
 
 .post-preview .date,
 .post-full .date {
-  font: normal bold 14pt Verdana, Arial, Helvetica, sans-serif;
-  color: #096d36;
+  font: normal 14pt Verdana, Arial, Helvetica, sans-serif;
+  /* color: #096d36; */
+  color: #002200;
   text-align: right;
   margin-top: 4px;
 }
