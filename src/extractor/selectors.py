@@ -11,6 +11,7 @@ VISIBILITY_CLASSES = {
     "i-posticon-private":  "private",
     "i-posticon-friends":  "friends",
     "i-posticon-friendsonly": "custom",
+    "i-posticon-protected": "custom",
 }
 VISIBILITY_IMG_RE = re.compile(r"icon_(public|private|friends)", re.I)
 

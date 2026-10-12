@@ -96,7 +96,7 @@ def main():
     runtime.IS_PRIVATE = args.private
     apply_overrides(args)
 
-    allowed = {"public", "private", "friends"} if args.private else config.PUBLIC_VISIBILITIES
+    allowed = {"public", "private", "friends", "custom"} if args.private else config.PUBLIC_VISIBILITIES
 
     log = logging.getLogger("main")
     log.info("режим: %s", "PRIVATE (все посты)" if args.private else "PUBLIC")
@@ -144,12 +144,11 @@ def main():
     log.info("генерирую профиль")
     page_profile.generate(env, posts_desc, stats)
 
+    print(stats.report())
+
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     log.info(f"время выполнения функции: {execution_time:.1f} секунд")
-
-    print(stats.report())
-
 
 if __name__ == "__main__":
     main()
