@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Poster</title>
+<link rel="stylesheet" href="poster.css">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <button id="btn-new" class="btn btn-primary" type="button">+ Новый пост</button>
+      <input id="search" type="search" placeholder="Поиск по заголовку / тегу / дате">
+    </div>
+    <div id="post-list" class="post-list"></div>
+    <div id="sidebar-status" class="hint"></div>
+  </aside>
+
+  <main id="editor">
+    <form id="form" autocomplete="off" novalidate>
+      <div class="row">
+        <label class="field field-id">ID
+          <input id="f-id" type="number" min="1" step="1" required>
+        </label>
+        <label class="field field-datetime">Дата / время
+          <input id="f-datetime" type="datetime-local" required>
+        </label>
+        <label class="field field-visibility">Видимость
+          <select id="f-visibility">
+            <option value="public">public</option>
+            <option value="friends">friends</option>
+            <option value="private">private</option>
+          </select>
+        </label>
+      </div>
+
+      <label class="field">Заголовок
+        <input id="f-title" type="text" required>
+      </label>
+
+      <label class="field">Теги (через запятую)
+        <input id="f-tags" type="text" list="tags-list" placeholder="юмор, работа, музыка">
+      </label>
+      <datalist id="tags-list"></datalist>
+
+      <div class="row row-meta">
+        <label class="field">Настроение
+          <input id="f-mood" type="text" placeholder="tired">
+        </label>
+        <label class="field">Иконка настроения
+          <div class="mood-icon-row">
+            <select id="f-mood-icon"><option value="">—</option></select>
+            <img id="f-mood-icon-preview" alt="" hidden>
+          </div>
+        </label>
+        <label class="field field-wide">Музыка
+          <input id="f-music" type="text" placeholder="Artist - Track">
+        </label>
+        <label class="field field-wide">Место
+          <input id="f-location" type="text">
+        </label>
+      </div>
+
+      <fieldset class="editor-block">
+        <legend>
+          Видимый текст
+          <span class="mode-toggle" data-target="visible">
+            <button type="button" class="mode-btn active" data-mode="rich">видимый</button>
+            <button type="button" class="mode-btn" data-mode="raw">HTML</button>
+          </span>
+        </legend>
+        <div id="editor-visible" class="quill-host"></div>
+        <textarea id="editor-visible-raw" class="raw-area" hidden></textarea>
+      </fieldset>
+
+      <label class="checkbox">
+        <input id="f-has-cut" type="checkbox">
+        есть кат
+      </label>
+      <div id="cut-warning" class="warning" hidden></div>
+
+      <fieldset id="cut-fields" class="editor-block" hidden>
+        <legend>
+          Под катом
+          <span class="mode-toggle" data-target="cut">
+            <button type="button" class="mode-btn active" data-mode="rich">видимый</button>
+            <button type="button" class="mode-btn" data-mode="raw">HTML</button>
+          </span>
+        </legend>
+        <label class="field">Текст кнопки
+          <input id="f-expand-text" type="text" value="читать далее...">
+        </label>
+        <div id="editor-cut" class="quill-host"></div>
+        <textarea id="editor-cut-raw" class="raw-area" hidden></textarea>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+        <button type="button" id="btn-preview" class="btn">Превью</button>
+        <span id="status" class="status"></span>
+      </div>
+    </form>
+  </main>
+</div>
+
+<div id="preview-modal" class="modal" hidden>
+  <div class="modal-inner">
+    <div class="modal-head">
+      <span>Превью (как в блоге)</span>
+      <button type="button" id="btn-preview-close" class="btn btn-ghost">✕</button>
+    </div>
+    <iframe id="preview-frame" sandbox=""></iframe>
+  </div>
+</div>
+
+<script src="poster.js"></script>
+</body>
+</html>
