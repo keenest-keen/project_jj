@@ -10,7 +10,7 @@ from .cleanup import normalize_hrefs
 from .meta import extract_meta_fields
 from .fields import (
     extract_title, extract_tags, extract_original_url, extract_visibility,
-    extract_id,
+    extract_id, extract_comments,
 )
 
 
@@ -30,6 +30,7 @@ def parse_file(path: Path) -> dict[str, Any]:
         "original_url": extract_original_url(soup),
         "visibility":   extract_visibility(soup),
         "tags":         extract_tags(soup),
+        "comments":     extract_comments(soup),
         "meta_fields":  extract_meta_fields(soup),
         "article": {
             "visible_html": visible_html,

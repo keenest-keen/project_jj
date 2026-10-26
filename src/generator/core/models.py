@@ -27,7 +27,7 @@ class Post:
     visible_html: str         # с <cut id="..."/> маркерами
     cuts: list[Cut]
     pin: Optional[bool] = False
-
+    comments: Optional[int] = 0
     # рассчитывается позже
     filename: str = ""        # "77645.html"
     sort_key: int = 0         # числовое значение stem для сортировки

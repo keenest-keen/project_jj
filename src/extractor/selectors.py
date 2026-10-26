@@ -37,3 +37,7 @@ TIME_IN_TEXT_RE = re.compile(r"(\d{1,2}):(\d{2})(?::(\d{2}))?")
 # <li class="b-singlepost-meta-item-groups">… Custom friends groups: …
 GROUPS_META_ITEM_RE  = re.compile(r"\bb-singlepost-meta-item-groups\b")
 GROUPS_ICON_SRC_RE   = re.compile(r"icon_groups\b", re.I)
+
+# <span class="js-amount">3 comments</span>
+COMMENT_COUNT_RE = re.compile(r"^\s*(\d+)\s+comments?\s*$", re.I)
+JS_AMOUNT_CLASS = "js-amount"

@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from .selectors import (
     VISIBILITY_CLASSES, VISIBILITY_IMG_RE,
     GROUPS_META_ITEM_RE, GROUPS_ICON_SRC_RE,
+    JS_AMOUNT_CLASS, COMMENT_COUNT_RE,
 )
 
 
@@ -93,3 +94,14 @@ def extract_id(path: Path, soup: BeautifulSoup) -> int | None:
     if path.stem.isdigit():
         return int(path.stem)
     return None
+
+def extract_comments(soup: BeautifulSoup) -> int:
+    """
+    Количество комментариев. В HTML лежит как <span class="js-amount">N comments</span>.
+    Если маркер не найден — считаем 0.
+    """
+    span = soup.find("span", class_=JS_AMOUNT_CLASS)
+    if not span:
+        return 0
+    m = COMMENT_COUNT_RE.match(span.get_text())
+    return int(m.group(1)) if m else 0

@@ -30,6 +30,8 @@ class BatchStats:
 
     with_cut_content: int = 0
 
+    total_comments: int = 0
+
     def update(self, rec: dict[str, Any], *, src: str = "") -> None:
         self.total += 1
 
@@ -48,6 +50,8 @@ class BatchStats:
         art = rec.get("article") or {}
         if art.get("cuts"):
             self.with_cut_content += 1
+
+        self.total_comments += int(rec.get("comments") or 0)
 
     def report(self) -> str:
         lines: list[str] = []
@@ -70,6 +74,7 @@ class BatchStats:
         lines.append("")
 
         lines.append(f"С содержимым cuts:   {self.with_cut_content}")
+        lines.append(f"Всего комментариев:  {self.total_comments}")
         return "\n".join(lines)
 
 
