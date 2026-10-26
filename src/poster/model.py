@@ -35,7 +35,6 @@ class PostDraft:
 
     @classmethod
     def from_form(cls, f: dict[str, Any]) -> "PostDraft":
-        # id
         try:
             pid = int(f.get("id") or 0)
         except (TypeError, ValueError):
@@ -56,23 +55,19 @@ class PostDraft:
             raise ValueError(f"неверный формат даты: {dt_raw!r}")
         dt_iso = dt.isoformat(timespec="seconds")
 
-        # теги: строка "a,b,c" или уже список
         tags_raw = f.get("tags") or []
         if isinstance(tags_raw, str):
             tags_raw = tags_raw.split(",")
         tags = [str(t).strip() for t in tags_raw if str(t).strip()]
-        # сохраняем порядок, убираем дубли
         seen: set[str] = set()
         tags = [t for t in tags if not (t in seen or seen.add(t))]
 
-        # meta_fields
         meta: dict[str, str] = {}
         for key in ("mood", "mood_icon", "music", "location"):
             v = str(f.get(key) or "").strip()
             if v:
                 meta[key] = v
 
-        # article
         visible = str(f.get("visible_html") or "").strip()
         has_cut = bool(f.get("has_cut"))
         cuts: list[Cut] = []
@@ -101,7 +96,7 @@ class PostDraft:
     # ---------- чтение существующего JSON ----------
 
     @classmethod
-    def from_json(cls, raw: dict[str, Any]) -> "PostDraft":
+    def from_json(cls, raw: dict[str, Any], fallback_id: int = 0) -> "PostDraft":
         article = raw.get("article") or {}
         cuts = [
             Cut(
@@ -111,8 +106,14 @@ class PostDraft:
             )
             for c in (article.get("cuts") or [])
         ]
+        # id может отсутствовать в JSON — канонический источник это stem файла.
+        raw_id = raw.get("id")
+        if isinstance(raw_id, int) and raw_id > 0:
+            post_id = raw_id
+        else:
+            post_id = int(fallback_id) if fallback_id else 0
         return cls(
-            id=int(raw.get("id") or 0),
+            id=post_id,
             title=str(raw.get("title") or ""),
             datetime=str(raw.get("datetime") or ""),
             visibility=str(raw.get("visibility") or DEFAULT_VISIBILITY),
@@ -145,13 +146,11 @@ class PostDraft:
     # ---------- представление для формы ----------
 
     def to_form_view(self) -> dict[str, Any]:
-        # Убираем <cut/> из visible_html — в форме он разнесён по панелям.
         visible = CUT_RE.sub("", self.visible_html).rstrip()
         has_cut = bool(self.cuts)
         cut_html = ""
         expand = DEFAULT_EXPAND_TEXT
         if has_cut:
-            # Несколько катов (редкий legacy-случай) — склеиваем через <hr/>.
             cut_html = "\n<hr/>\n".join(c.html for c in self.cuts)
             expand = self.cuts[0].expand_text or DEFAULT_EXPAND_TEXT
         dt_input = ""

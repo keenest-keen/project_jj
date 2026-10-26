@@ -10,7 +10,7 @@
   <aside id="sidebar">
     <div class="sidebar-header">
       <button id="btn-new" class="btn btn-primary" type="button">+ Новый пост</button>
-      <input id="search" type="search" placeholder="Поиск по заголовку / тегу / дате">
+      <input id="search" type="search" placeholder="Поиск: заголовок / тег / дата / музыка">
     </div>
     <div id="post-list" class="post-list"></div>
     <div id="sidebar-status" class="hint"></div>
@@ -110,6 +110,16 @@
       <button type="button" id="btn-preview-close" class="btn btn-ghost">✕</button>
     </div>
     <iframe id="preview-frame" sandbox=""></iframe>
+  </div>
+</div>
+
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div id="loading-text">Загрузка…</div>
+    <div id="loading-bar-wrap" class="loading-bar-wrap" hidden>
+      <div id="loading-bar" class="loading-bar"></div>
+    </div>
   </div>
 </div>
 

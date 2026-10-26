@@ -259,29 +259,46 @@ ul.meta li { margin: 3px 0; }
   margin-top: 28px;
   padding-top: 12px;
   border-top: 1px dashed #096d36;
+
   display: flex;
+  flex-wrap: nowrap;               /* запрещаем перенос между ссылками */
   justify-content: space-between;
+  align-items: baseline;           /* первая строка текста обеих ссылок по одной линии */
   gap: 12px;
-  flex-wrap: wrap;
 }
+
 .post-nav a {
-  max-width: 48%;
+  flex: 1 1 0;                     /* каждая ссылка — «ячейка таблицы» шириной 50% */
+  min-width: 0;                    /* критично: иначе flex-элемент не сожмётся ниже контента */
   color: #096d36;
   font-weight: bold;
+  overflow-wrap: anywhere;         /* длинные слова/URL ломаются, а не вылезают за край */
+  word-break: break-word;
 }
-/* .post-nav a:hover { color: #f9f5f5; } */
+
+.pn-newer { text-align: left;  }
+.pn-older { text-align: right; }
 
 /* =====================================================
    пагинация
    ===================================================== */
 .pagination {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: nowrap;          /* на всякий случай: никогда не переносим */
+  align-items: baseline;
+  gap: 12px;
   margin-top: 24px;
   padding-top: 14px;
   border-top: 1px solid #096d36;
 }
-.pagination a { font-weight: bold; }
+
+.pagination a {
+  font-weight: bold;
+}
+
+.pg-older {
+  margin-left: auto;          /* всегда прижимает «старые →» к правому краю */
+}
 
 /* =====================================================
    теги

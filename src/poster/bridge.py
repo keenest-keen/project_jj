@@ -10,10 +10,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-# --- даём доступ к модулям generator (он написан в терминах top-level `config`,
-#     `core.*`, поэтому нужен именно src/generator в sys.path) ---
+# --- доступ к модулям generator (он написан в терминах top-level `config`, `core.*`) ---
 _HERE = Path(__file__).resolve()
-_SRC = _HERE.parent.parent               # .../src
+_SRC = _HERE.parent.parent
 _GEN = _SRC / "generator"
 for _p in (str(_SRC), str(_GEN)):
     if _p not in sys.path:
@@ -21,19 +20,24 @@ for _p in (str(_SRC), str(_GEN)):
 
 from .config import MOOD_DIR, DEFAULT_EXPAND_TEXT
 from .model import PostDraft
-from .storage import collect_tags, find_post_path, next_id, scan_posts
+from .storage import (
+    collect_tags,
+    extract_post,
+    find_post_path,
+    iter_json_files,
+    next_id,
+    scan_posts,
+)
 from .writer import save_post
 
-
-# --- ленивая проверка генератора: если его нет или он сломан — превью просто скажет об этом ---
 try:
-    import config as gen_config                              # src/generator/config.py
-    from core.models import Post as GenPost, Cut as GenCut   # src/generator/core/models.py
-    from core.renderer import make_env, base_context         # src/generator/core/renderer.py
-    from core.cuts import render_full                        # src/generator/core/cuts.py
+    import config as gen_config
+    from core.models import Post as GenPost, Cut as GenCut
+    from core.renderer import make_env, base_context
+    from core.cuts import render_full
     _GEN_OK = True
     _GEN_ERR = ""
-except Exception as _e:                                      # noqa: BLE001
+except Exception as _e:  # noqa: BLE001
     _GEN_OK = False
     _GEN_ERR = f"{type(_e).__name__}: {_e}"
 
@@ -41,6 +45,33 @@ except Exception as _e:                                      # noqa: BLE001
 class PosterBridge:
     def __init__(self, json_dir: Path):
         self.json_dir = json_dir
+        self._bootstrap_files: list[Path] | None = None
+
+    # ---------- bootstrap с прогрессом ----------
+
+    def bootstrap_count(self) -> int:
+        """Список файлов кэшируется — последующие bootstrap_batch его переиспользуют."""
+        self._bootstrap_files = list(iter_json_files(self.json_dir))
+        return len(self._bootstrap_files)
+
+    def bootstrap_batch(self, offset: int, limit: int = 100) -> dict[str, Any]:
+        if self._bootstrap_files is None:
+            self._bootstrap_files = list(iter_json_files(self.json_dir))
+        total = len(self._bootstrap_files)
+        chunk = self._bootstrap_files[offset:offset + int(limit)]
+        posts: list[dict[str, Any]] = []
+        for p in chunk:
+            post = extract_post(p, self.json_dir)
+            if post is not None:
+                posts.append(post)
+        done = offset + len(chunk) >= total
+        return {
+            "posts": posts,
+            "offset": offset,
+            "batch_size": len(chunk),
+            "done": done,
+            "total": total,
+        }
 
     # ---------- справочники ----------
 
@@ -51,7 +82,6 @@ class PosterBridge:
         return collect_tags(self.json_dir)
 
     def list_mood_icons(self) -> list[dict[str, str]]:
-        """[{name, url}] — url как data:image/gif;base64,…, работает и на file://, и на http://"""
         if not MOOD_DIR.exists():
             return []
         out: list[dict[str, str]] = []
@@ -71,9 +101,15 @@ class PosterBridge:
 
     # ---------- посты ----------
 
-    def new_post(self) -> dict[str, Any]:
+    def new_post(self, next_id_hint: int = 0) -> dict[str, Any]:
+        try:
+            nid = int(next_id_hint) if next_id_hint else 0
+        except (TypeError, ValueError):
+            nid = 0
+        if nid <= 0:
+            nid = next_id(self.json_dir)
         return {
-            "id": next_id(self.json_dir),
+            "id": nid,
             "title": "",
             "datetime": datetime.now().strftime("%Y-%m-%dT%H:%M"),
             "visibility": "public",
@@ -99,7 +135,7 @@ class PosterBridge:
                 raw = json.load(f)
         except Exception as e:
             return {"ok": False, "error": f"не читается {path.name}: {e}"}
-        draft = PostDraft.from_json(raw)
+        draft = PostDraft.from_json(raw, fallback_id=int(post_id))
         return {
             "ok": True,
             "post": draft.to_form_view(),
@@ -125,10 +161,7 @@ class PosterBridge:
 
     def render_preview(self, form_data: dict[str, Any]) -> dict[str, Any]:
         if not _GEN_OK:
-            return {
-                "ok": False,
-                "error": f"generator недоступен для превью: {_GEN_ERR}",
-            }
+            return {"ok": False, "error": f"generator недоступен для превью: {_GEN_ERR}"}
         try:
             draft = PostDraft.from_form(form_data)
         except ValueError as e:
@@ -166,7 +199,6 @@ class PosterBridge:
                 **base_context(base="", nav_active=""),
             )
 
-            # 1) В iframe (srcdoc) относительные пути не работают — инлайним CSS.
             css_path = Path(gen_config.STATIC_DIR) / "css" / "style.css"
             css = css_path.read_text(encoding="utf-8") if css_path.is_file() else ""
             html = re.sub(
@@ -176,8 +208,6 @@ class PosterBridge:
                 count=1,
             )
 
-            # 2) mood-иконка в _meta.html приходит как img/mood/<name>.gif — тоже
-            #    inline'им в data:URL, иначе она не загрузится в srcdoc-iframe.
             mood_dir = Path(gen_config.STATIC_DIR) / gen_config.MOOD_ICONS_DIR
 
             def _icon_data_url(m: re.Match) -> str:
@@ -193,9 +223,6 @@ class PosterBridge:
                 html,
             )
 
-            # 3) Абсолютные /media/... пути (постовые картинки) в srcdoc не
-            #    разрешить без знания, откуда их раздаёт сервер. Оставляем как есть —
-            #    в реальной странице они загрузятся, в превью — нет (это ок).
             return {"ok": True, "html": html}
         except Exception as e:  # noqa: BLE001
             return {

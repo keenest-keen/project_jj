@@ -15,6 +15,7 @@
     currentId: null,
     dirty: false,
     expandDefault: 'читать далее...',
+    nextId: 0,
   };
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
@@ -28,6 +29,27 @@
     clearTimeout(setStatus._t);
     if (msg) setStatus._t = setTimeout(() => { el.textContent = ''; el.className = 'status'; }, 6000);
   }
+
+  // -------------------- loading overlay --------------------
+
+  function showLoading(text = 'Загрузка…') {
+    $('#loading-overlay').hidden = false;
+    $('#loading-text').textContent = text;
+    $('#loading-bar-wrap').hidden = true;
+    $('#loading-bar').style.width = '0%';
+  }
+  function updateLoadingProgress(current, total) {
+    if (!total) return;
+    $('#loading-bar-wrap').hidden = false;
+    const pct = Math.min(100, Math.round(current / total * 100));
+    $('#loading-bar').style.width = pct + '%';
+    $('#loading-text').textContent = `Загрузка постов: ${current} / ${total} (${pct}%)`;
+  }
+  function hideLoading() {
+    $('#loading-overlay').hidden = true;
+  }
+
+  // -------------------- asset loaders --------------------
 
   function loadScript(src) {
     return new Promise((res, rej) => {
@@ -109,7 +131,7 @@
     else state.quill[which].clipboard.dangerouslyPasteHTML(v);
   }
 
-  function setMode(which, mode) {              // mode: 'rich' | 'raw'
+  function setMode(which, mode) {
     const isRaw = mode === 'raw';
     if (state.rawMode[which] === isRaw) return;
     const html = getEditorHTML(which);
@@ -140,6 +162,7 @@
       if (!q) return true;
       return (p.title || '').toLowerCase().includes(q)
           || (p.datetime || '').toLowerCase().includes(q)
+          || (p.music || '').toLowerCase().includes(q)
           || (p.tags || []).some((t) => t.toLowerCase().includes(q))
           || String(p.id).includes(q);
     });
@@ -158,11 +181,6 @@
         loadPost(id);
       });
     });
-  }
-
-  async function refreshSidebar() {
-    state.posts = await window.pywebview.api.list_posts();
-    renderSidebar($('#search').value);
   }
 
   // -------------------- form --------------------
@@ -239,7 +257,7 @@
 
   async function newPost() {
     if (!guardUnsaved()) return;
-    const view = await window.pywebview.api.new_post();
+    const view = await window.pywebview.api.new_post(state.nextId || 0);
     fillForm(view);
     setStatus(`Новый пост, id=${view.id}`, '');
   }
@@ -258,10 +276,34 @@
     if (!res.ok) { setStatus('Ошибка: ' + res.error, 'err'); return; }
     state.dirty = false;
     state.currentId = payload.id;
+
+    // обновляем локальный список без повторного скана всех файлов
+    const idx = state.posts.findIndex((p) => p.id === payload.id);
+    const entry = {
+      id: payload.id,
+      title: payload.title,
+      datetime: payload.datetime,
+      tags: payload.tags,
+      visibility: payload.visibility,
+      music: payload.music,
+      relpath: res.path,
+    };
+    if (idx >= 0) state.posts[idx] = entry;
+    else state.posts.push(entry);
+    state.posts.sort((a, b) => (b.datetime || '').localeCompare(a.datetime || ''));
+    if (payload.id >= state.nextId) state.nextId = payload.id + 1;
+
+    // обновляем datalist тегов
+    const newTags = new Set(state.tags);
+    for (const t of payload.tags) newTags.add(t);
+    state.tags = [...newTags].sort();
+    $('#tags-list').innerHTML = state.tags.map((t) => `<option value="${esc(t)}"></option>`).join('');
+
+    renderSidebar($('#search').value);
+
     const parts = [`✓ сохранено: ${res.path}`];
     if (res.backup) parts.push(`бэкап: ${res.backup}`);
     setStatus(parts.join(' · '), 'ok');
-    await refreshSidebar();
   }
 
   async function showPreview() {
@@ -278,19 +320,60 @@
     setStatus('', '');
   }
 
+  // -------------------- bootstrap --------------------
+
+  async function bootstrap() {
+    showLoading('Сканирую посты…');
+    await new Promise((r) => setTimeout(r, 0));  // дать браузеру отрисовать оверлей
+
+    const total = await window.pywebview.api.bootstrap_count();
+    if (!total) {
+      state.posts = [];
+      state.tags = [];
+      state.nextId = 1;
+      hideLoading();
+      return;
+    }
+
+    updateLoadingProgress(0, total);
+    const allPosts = [];
+    let offset = 0;
+    const LIMIT = 100;
+    while (offset < total) {
+      const batch = await window.pywebview.api.bootstrap_batch(offset, LIMIT);
+      allPosts.push(...batch.posts);
+      offset += batch.batch_size;
+      updateLoadingProgress(offset, total);
+      if (batch.done) break;
+      await new Promise((r) => setTimeout(r, 0));  // дать UI перерисоваться
+    }
+
+    allPosts.sort((a, b) => (b.datetime || '').localeCompare(a.datetime || ''));
+    state.posts = allPosts;
+    state.tags = [...new Set(allPosts.flatMap((p) => p.tags))].sort();
+    state.nextId = allPosts.reduce((m, p) => Math.max(m, p.id), 0) + 1;
+
+    hideLoading();
+  }
+
   // -------------------- init --------------------
 
   async function init() {
     await waitForPywebview();
-    const Quill = await loadQuill();
-    if (!Quill) { setStatus('Не удалось загрузить Quill', 'err'); return; }
+
+    // параллельно грузим Quill (CDN или локально) — пока bootstrap ещё не начался
+    const [Quill, moodIcons, expandDefault] = await Promise.all([
+      loadQuill(),
+      window.pywebview.api.list_mood_icons(),
+      window.pywebview.api.default_expand_text(),
+    ]);
+    if (!Quill) { setStatus('Не удалось загрузить Quill', 'err'); hideLoading(); return; }
+
+    state.moodIcons = moodIcons;
+    state.expandDefault = expandDefault;
+
     initEditors(Quill);
-
-    state.tags = await window.pywebview.api.list_tags();
-    state.moodIcons = await window.pywebview.api.list_mood_icons();
-    state.expandDefault = await window.pywebview.api.default_expand_text();
-
-    $('#tags-list').innerHTML = state.tags.map((t) => `<option value="${esc(t)}"></option>`).join('');
+    $('#tags-list').innerHTML = '';
     const moodSel = $('#f-mood-icon');
     for (const icon of state.moodIcons) {
       const opt = document.createElement('option');
@@ -300,8 +383,14 @@
     }
     moodSel.addEventListener('change', updateMoodPreview);
 
-    await refreshSidebar();
+    // основной долгий шаг — с прогрессом
+    await bootstrap();
 
+    $('#tags-list').innerHTML = state.tags
+      .map((t) => `<option value="${esc(t)}"></option>`)
+      .join('');
+
+    // события
     $('#btn-new').addEventListener('click', newPost);
     $('#search').addEventListener('input', (e) => renderSidebar(e.target.value));
     $('#f-has-cut').addEventListener('change', toggleCutFields);
@@ -330,6 +419,7 @@
     init().catch((e) => {
       console.error(e);
       setStatus('Ошибка инициализации: ' + e.message, 'err');
+      hideLoading();
     });
   });
 })();

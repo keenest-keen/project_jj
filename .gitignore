@@ -1,13 +1,10 @@
-/data_test
-/data_prod
-/blog/
-/blog_v1/
-/blog_v2/
-/blog_v3/
-/cache/
-/cache_test/
-/cache_prod/
-/cache_override/
+/ljsm_data*/
+/posts_json*/
+/blog*/
+/temp/
+
+favicon.png
+/media/
 
 .venv/
 __pycache__/
