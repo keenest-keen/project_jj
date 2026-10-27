@@ -307,8 +307,8 @@ ul.meta li { margin: 3px 0; }
 .tag-cloud .tag { margin-right: 4px; }
 .tag-cloud .tag-count {
   color: #063d1e;
-  font-size: 9.5pt;
-  vertical-align: super;
+  font-size: 10pt;
+  margin-left: 4px;
   margin-right: 12px;
 }
 ul.tag {

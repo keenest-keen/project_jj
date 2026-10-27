@@ -1,7 +1,7 @@
-"""Пакетный разбор папки с HTML-постами ЖЖ.
+"""Пакетный разбор папки с HTML-постами ЖЖ в формате LJSM.
 
 Использование:
-    python -m extractor.batch <source_dir> [--cache DIR] [--incremental] [--quiet]
+    python -m extractor.batch <source_dir> [--output DIR] [--incremental] [--quiet]
 """
 from __future__ import annotations
 
@@ -84,35 +84,35 @@ def iter_html_files(root: Path) -> Iterable[Path]:
             yield p
 
 
-def _cache_path(cache_dir: Path, source_dir: Path, src: Path) -> Path:
-    return cache_dir / src.relative_to(source_dir).with_suffix(".json")
+def _output_path(output_dir: Path, source_dir: Path, src: Path) -> Path:
+    return output_dir / src.relative_to(source_dir).with_suffix(".json")
 
 
 def run_batch(
     source_dir: Path,
-    cache_dir: Path | None = None,
+    output_dir: Path | None = None,
     *,
     incremental: bool = False,
     quiet: bool = False,
 ) -> BatchStats:
     st = BatchStats()
-    if cache_dir:
-        cache_dir.mkdir(parents=True, exist_ok=True)
+    if output_dir:
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     start_time = time.perf_counter()
     for src in iter_html_files(source_dir):
-        out = _cache_path(cache_dir, source_dir, src) if cache_dir else None
+        out = _output_path(output_dir, source_dir, src) if output_dir else None
 
         if incremental and out and out.exists() and out.stat().st_mtime >= src.stat().st_mtime:
             try:
                 rec = json.loads(out.read_text(encoding="utf-8"))
             except Exception as e:
                 if not quiet:
-                    print(f"  {src}  ->  CACHE-CORRUPT: {e}", file=sys.stderr)
+                    print(f"  {src}  ->  output-CORRUPT: {e}", file=sys.stderr)
                 continue
             st.update(rec, src=str(src))
             if not quiet:
-                print(f"  {src}  ->  (cached)")
+                print(f"  {src}  ->  (outputed)")
             continue
 
         try:
@@ -144,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
         description="Пакетный разбор HTML-постов ЖЖ.",
     )
     ap.add_argument("source", type=Path, help="папка с .html")
-    ap.add_argument("--cache", type=Path, default=None,
+    ap.add_argument("--output", type=Path, default=None,
                     help="куда писать JSON-кэш (по умолчанию не писать)")
     ap.add_argument("--incremental", action="store_true",
                     help="не пересобирать, если кэш свежее источника")
@@ -160,7 +160,7 @@ def main(argv: list[str] | None = None) -> int:
 
     st = run_batch(
         args.source,
-        args.cache,
+        args.output,
         incremental=args.incremental,
         quiet=args.quiet,
     )

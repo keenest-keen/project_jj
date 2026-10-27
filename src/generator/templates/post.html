@@ -17,6 +17,11 @@
 
   {% include "_meta.html" %}
 
+  <div class="open-post">
+    (&nbsp;{% if post.comments > 0 %}<a href="{{ post.original_url }}?view=comments#comments" target="_blank">{{ post.comments }} {{ post.comments|plural_ru('камент', 'камента', 'каментов') }} в жж</a> | {% endif %}
+    <a href="{{ base }}{{ post.filename }}">ссылка на пост</a>&nbsp;)
+  </div>
+
   <nav class="post-nav">
     {% if newer %}<a class="pn-newer" href="{{ base }}{{ newer.filename }}">← {{ newer.display_title }}</a>{% endif %}
     {% if older %}<a class="pn-older" href="{{ base }}{{ older.filename }}">{{ older.display_title }} →</a>{% endif %}

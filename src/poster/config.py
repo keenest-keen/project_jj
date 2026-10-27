@@ -17,7 +17,7 @@ try:
         MOOD_ICONS_DIR as _MOOD_ICONS_DIR,
     )
 except Exception:
-    _DEFAULT_JSON_DIR = (_SRC.parent / "cache").resolve()
+    _DEFAULT_JSON_DIR = (_SRC.parent / "json").resolve()
     _GEN_STATIC_DIR = _SRC / "generator" / "static"
     _MOOD_ICONS_DIR = "img/mood"
 
@@ -33,4 +33,4 @@ DEFAULT_VISIBILITY = "public"
 DEFAULT_EXPAND_TEXT = "читать далее..."
 DEFAULT_CUT_ID = "cutid1"
 POST_SUFFIX = ".json"
-BACKUP_SUFFIX = ".json.bak"
+BACKUP_SUFFIX = ".bak"

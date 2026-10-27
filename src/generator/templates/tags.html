@@ -7,8 +7,9 @@
   {% for item in tags_view %}
     <li>
       <a class="tag" style="font-size: {{ item.size }}px"
-        href="{{ base }}tag/{{ item.tag.slug }}.html">{{ item.tag.name }}</a>
-      <span class="tag-count">{{ item.tag.count }}</span>
+         href="{{ base }}tag/{{ item.tag.slug }}.html">{{ item.tag.name }}</a>
+      —
+      <span class="tag-count">{{ item.tag.count }} {{ item.tag.count|plural_ru('запись', 'записи', 'записей') }}</span>
     </li>
   {% endfor %}
   </ul>

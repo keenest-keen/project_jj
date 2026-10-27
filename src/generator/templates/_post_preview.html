@@ -15,8 +15,10 @@
   <div class="post-body">
     {{ post|render_visible|safe }}
   </div>
+
   {% include "_meta.html" %}
+
   <div class="open-post">
-    ( <a href="{{ base }}{{ post.filename }}">открыть пост</a> )
+    (&nbsp;{% if post.comments > 0 %}<a href="{{ post.original_url }}?view=comments#comments" target="_blank">{{ post.comments }} {{ post.comments|plural_ru('камент', 'камента', 'каментов') }} в жж</a> | {% endif %}<a href="{{ base }}{{ post.filename }}">ссылка на пост</a>&nbsp;)
   </div>
 </article>

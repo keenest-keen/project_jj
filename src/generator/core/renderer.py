@@ -38,6 +38,26 @@ def fmt_date_short(dt: datetime | None) -> str:
     return fmt_date(dt)
 
 
+def plural_ru(n, one: str, few: str, many: str) -> str:
+    """Русская плюрализация.
+
+    plural_ru(1,  'камент', 'камента', 'каментов') -> 'камент'
+    plural_ru(2,  'камент', 'камента', 'каментов') -> 'камента'
+    plural_ru(5,  'камент', 'камента', 'каментов') -> 'каментов'
+    plural_ru(11, 'камент', 'камента', 'каментов') -> 'каментов'
+    plural_ru(21, 'камент', 'камента', 'каментов') -> 'камент'
+    """
+    try:
+        n = abs(int(n))
+    except (TypeError, ValueError):
+        return many
+    if n % 10 == 1 and n % 100 != 11:
+        return one
+    if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
+        return few
+    return many
+
+
 def make_env() -> Environment:
     env = Environment(
         loader=FileSystemLoader(str(config.TEMPLATES_DIR)),
@@ -50,6 +70,7 @@ def make_env() -> Environment:
     env.filters["fmt_date_short"]  = fmt_date_short
     env.filters["render_visible"]  = render_visible
     env.filters["tag_slug"]        = slugify_tag
+    env.filters["plural_ru"]       = plural_ru
     return env
 
 
@@ -71,6 +92,7 @@ def base_context(base: str = "", nav_active: str = "") -> dict:
         "show_mood":     config.SHOW_MOOD,
         "show_music":    config.SHOW_MUSIC,
     }
+
 
 def write_page(out_path: Path, html: str) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)

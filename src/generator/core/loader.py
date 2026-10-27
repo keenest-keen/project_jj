@@ -63,6 +63,7 @@ def load_post(path: Path) -> Post | None:
         datetime=_parse_dt(data.get("datetime")),
         original_url=data.get("original_url"),
         visibility=data.get("visibility") or "public",
+        comments=int(data.get("comments") or 0),
         tags=list(data.get("tags") or []),
         meta_fields=dict(data.get("meta_fields") or {}),
         visible_html=visible_html,

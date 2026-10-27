@@ -15,7 +15,7 @@ def save_post(root: Path, draft: PostDraft) -> tuple[Path, Path | None]:
     existing = find_post_path(root, draft.id)
     if existing is not None:
         target = existing
-        backup = existing.with_suffix(existing.suffix + BACKUP_SUFFIX)  # <id>.json.bak
+        backup = existing.with_suffix(existing.suffix + BACKUP_SUFFIX)  # <id>.bak
         backup.write_bytes(existing.read_bytes())
     else:
         target = root / f"{draft.id}.json"
