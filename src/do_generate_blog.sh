@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# генератор блога - из json-постов в итоговые html-файлы
-
+# Генератор блога — интерактивный запуск
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 cd "$SCRIPT_DIR"
 
 # ---------- Значения по умолчанию ----------
-DEFAULT_INPUT="../posts_json"
-DEFAULT_OUTPUT="../blog"
-posts_override="../posts_override"
+DEFAULT_TEST_INPUT="../posts_json_test"
+DEFAULT_PROD_INPUT="../posts_json"
+
+DEFAULT_TEST_OUTPUT="../blog"
+DEFAULT_OUTPUT_PUBL="../blog"
+DEFAULT_OUTPUT_PRIV="../blog_priv"
 
 # ---------- Хелперы ----------
 ask_yes_no() {
@@ -27,43 +29,68 @@ ask_yes_no() {
     esac
 }
 
-# ---------- Опрос ----------
+# ---------- 1. Тестовый или продакшн ----------
 echo "=== Генератор блога ==="
 echo
 
-read -rp "Входная папка  (--json-dir)  [$DEFAULT_INPUT]:  " INPUT_DIR
-INPUT_DIR="${INPUT_DIR:-$DEFAULT_INPUT}"
+TEST_RUN="n"
+if ask_yes_no "Тестовый запуск? ($DEFAULT_TEST_INPUT вместо $DEFAULT_PROD_INPUT)" n; then
+    TEST_RUN="y"
+fi
 
-read -rp "Выходная папка (--output-dir) [$DEFAULT_OUTPUT]: " OUTPUT_DIR
-OUTPUT_DIR="${OUTPUT_DIR:-$DEFAULT_OUTPUT}"
+# ---------- 2. Входная папка ----------
+if [ "$TEST_RUN" = "y" ]; then
+    read -rp "Входная папка  [${DEFAULT_TEST_INPUT}]: " INPUT_DIR
+    INPUT_DIR="${INPUT_DIR:-$DEFAULT_TEST_INPUT}"
+else
+    INPUT_DIR="$(realpath -m -- "$DEFAULT_PROD_INPUT")"
+fi
 
+# ---------- 3. Выходные папки ----------
+if [ "$TEST_RUN" = "y" ]; then
+    DEFAULT_TEST_OUTPUT="${DEFAULT_TEST_OUTPUT}"
+    read -rp "Выходная папка [${DEFAULT_TEST_OUTPUT}]: " OUTPUT_DIR
+    OUTPUT_DIR="${OUTPUT_DIR:-$DEFAULT_TEST_OUTPUT}"
+fi
+
+# ---------- 4. Очистка ----------
 CLEAN="n"
-if ask_yes_no "Очищать выходную папку перед генерацией?" y; then
-    CLEAN="y"
+if [ "$TEST_RUN" = "y" ]; then
+    ask_yes_no "Очищать выходную папку перед генерацией?" y && CLEAN="y"
+else
+    ask_yes_no "Очищать выходные папки перед генерацией?" y && CLEAN="y"
 fi
 
-USE_OVERRIDE="n"
-if ask_yes_no "Копировать из posts_override? (существующие *.json сохранятся как *.original)" n; then
-    USE_OVERRIDE="y"
-fi
-
+# ---------- 5. --private (только в тестовом режиме) ----------
 PRIVATE="n"
-if ask_yes_no "Запустить с флагом --private?" n; then
-    PRIVATE="y"
+if [ "$TEST_RUN" = "y" ]; then
+    ask_yes_no "Запустить с флагом --private?" n && PRIVATE="y"
 fi
 
-# ---------- Абсолютные пути ----------
+# ---------- 6. Абсолютные пути ----------
 INPUT_ABS="$(realpath -m -- "$INPUT_DIR")"
-OUTPUT_ABS="$(realpath -m -- "$OUTPUT_DIR")"
-OVERRIDE_ABS="$(realpath -m -- "$posts_override")"
+if [ "$TEST_RUN" = "y" ]; then
+    OUTPUT_ABS="$(realpath -m -- "$OUTPUT_DIR")"
+else
+    OUTPUT_PUBL_ABS="$(realpath -m -- "$DEFAULT_OUTPUT_PUBL")"
+    OUTPUT_PRIV_ABS="$(realpath -m -- "$DEFAULT_OUTPUT_PRIV")"
+fi
 
+# ---------- 7. Сводка и подтверждение ----------
 echo
 echo "--- Параметры запуска ---"
-printf '  Входная папка:  %s\n' "$INPUT_ABS"
-printf '  Выходная папка: %s\n' "$OUTPUT_ABS"
-printf '  Очистка выхода: %s\n' "$CLEAN"
-printf '  Cache override: %s (%s)\n' "$USE_OVERRIDE" "$OVERRIDE_ABS"
-printf '  --private:      %s\n' "$PRIVATE"
+if [ "$TEST_RUN" = "y" ]; then
+    printf '  Режим:             ТЕСТОВЫЙ\n'
+    printf '  Входная папка:     %s\n' "$INPUT_ABS"
+    printf '  Выходная папка:    %s\n' "$OUTPUT_ABS"
+    printf '  --private:         %s\n' "$PRIVATE"
+else
+    printf '  Режим:             ПРОДАКШН\n'
+    printf '  Входная папка:     %s\n' "$INPUT_ABS"
+    printf '  Выход (публичный): %s\n' "$OUTPUT_PUBL_ABS"
+    printf '  Выход (private):   %s\n' "$OUTPUT_PRIV_ABS"
+fi
+printf '  Очистка выхода:    %s\n' "$CLEAN"
 echo
 
 read -rp "Продолжить? [Y/n]: " CONFIRM
@@ -73,48 +100,43 @@ case "${CONFIRM,,}" in
     *) echo "Отменено."; exit 0 ;;
 esac
 
-# ---------- Очистка выхода ----------
-if [ "$CLEAN" = "y" ] && [ -d "$OUTPUT_ABS" ]; then
-    echo "Удаляю $OUTPUT_ABS ..."
-    rm -rf -- "$OUTPUT_ABS"
-fi
-
-# ---------- Копирование из posts_override с бэкапом ----------
-if [ "$USE_OVERRIDE" = "y" ]; then
-    if [ -d "$OVERRIDE_ABS" ]; then
-        echo "Копирую из $OVERRIDE_ABS в $INPUT_ABS ..."
-        mkdir -p -- "$INPUT_ABS"
-        while IFS= read -r -d '' src; do
-            rel="${src#"$OVERRIDE_ABS"/}"
-            dst="$INPUT_ABS/$rel"
-
-            # Существующий *.json -> *.original (один раз)
-            if [ -e "$dst" ] \
-               && [[ "$dst" == *.json ]] \
-               && [[ "$dst" != *.original ]]; then
-                orig="${dst%.json}.original"
-                if [ ! -e "$orig" ]; then
-                    mv -- "$dst" "$orig"
-                    echo "  backup: $rel -> $(basename -- "$orig")"
-                fi
-            fi
-
-            mkdir -p -- "$(dirname -- "$dst")"
-            cp -f -- "$src" "$dst"
-        done < <(find "$OVERRIDE_ABS" -type f -print0)
+# ---------- 8. Очистка выходных папок ----------
+if [ "$CLEAN" = "y" ]; then
+    if [ "$TEST_RUN" = "y" ]; then
+        if [ -d "$OUTPUT_ABS" ]; then
+            echo "Удаляю $OUTPUT_ABS ..."
+            rm -rf -- "$OUTPUT_ABS"
+        fi
     else
-        echo "ПРЕДУПРЕЖДЕНИЕ: $OVERRIDE_ABS не найдена, пропускаю копирование." >&2
+        for d in "$OUTPUT_PUBL_ABS" "$OUTPUT_PRIV_ABS"; do
+            if [ -d "$d" ]; then
+                echo "Удаляю $d ..."
+                rm -rf -- "$d"
+            fi
+        done
     fi
 fi
 
-# ---------- Запуск генератора ----------
-echo
-echo "Запуск генератора..."
+# ---------- 9. Запуск генератора ----------
 cd "$SCRIPT_DIR/generator"
 
-ARGS=(--json-dir "$INPUT_ABS" --output-dir "$OUTPUT_ABS" -v)
-[ "$PRIVATE" = "y" ] && ARGS+=(--private)
+run_generator() {
+    local out="$1"; shift
+    echo
+    echo ">>> Генерация в $out ..."
+    python3 main.py --json-dir "$INPUT_ABS" --output-dir "$out" -v "$@"
+}
 
-python3 main.py "${ARGS[@]}"
+if [ "$TEST_RUN" = "y" ]; then
+    if [ "$PRIVATE" = "y" ]; then
+        run_generator "$OUTPUT_ABS" --private
+    else
+        run_generator "$OUTPUT_ABS"
+    fi
+else
+    run_generator "$OUTPUT_PUBL_ABS"            # публичный прогон
+    run_generator "$OUTPUT_PRIV_ABS" --private  # приватный прогон
+fi
 
+echo
 echo "Готово."

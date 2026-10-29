@@ -15,13 +15,13 @@ pip install jinja2
 python3 main.py
 
 # тест на другой коллекции, в другую папку
-python3 main.py --json-dir ~/projects/blog/cache_test --output-dir ~/projects/blog/blog_test -v
+python3 main.py --json-dir ~/projects/blog/posts_json_test --output-dir ~/projects/blog/blog_test -v
 
 # рабочий прогон
-python3 main.py --json-dir ../../cache_prod --output-dir ../../blog
+python3 main.py --json-dir ../../posts_json_test_prod --output-dir ../../blog
 
 # всё, включая private/friends
-python3 main.py --json-dir ../../cache_prod --output-dir ../../blog --private -v
+python3 main.py --json-dir ../../posts_json_test_prod --output-dir ../../blog --private -v
 ```
 Результат — в output/blog/. Папка при каждом запуске пересоздаётся с нуля.
 
@@ -31,6 +31,7 @@ python3 main.py --json-dir ../../cache_prod --output-dir ../../blog --private -v
 
 # Что генерируется
 
+```
 output/blog/
 ├── index.html                # последние 20 постов
 ├── index-20.html             # предыдущие 20
@@ -48,10 +49,11 @@ output/blog/
 │   ├── mood/*.gif            # иконки настроений
 │   └── posts/YYYY/MM/<stem>/ # папки под картинки постов (создаются пустыми)
 └── mood/  (устаревшее, не используется)
-
+```
 
 # Структура проекта
 
+```
 src/generator/
 ├── main.py              # точка входа
 ├── config.py            # ВСЕ настройки: пути, форматы, состав профиля
@@ -88,6 +90,7 @@ src/generator/
     └── img/
         ├── background.gif
         └── mood/*.gif
+```
 
 # Формат JSON-поста
 

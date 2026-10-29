@@ -93,7 +93,7 @@ article:
 ```bash
 source .venv/bin/activate
 cd src
-python3 -m extractor.batch ../data_test --cache ../cache
+python3 -m extractor.batch ../data_test --output ../posts_json
 ```
 
 Один или несколько файлов:
@@ -110,15 +110,15 @@ python3 -m extractor ../data/22800.html --json > /tmp/one.json
 ```bash
 cd src
 python3 -m extractor.batch ../data                    # только статистика
-python3 -m extractor.batch ../data --cache ../cache   # + JSON-кэш
-python3 -m extractor.batch ../data --cache ../cache --incremental --quiet
+python3 -m extractor.batch ../data --output ../posts_json   # + JSON-путь
+python3 -m extractor.batch ../data --output ../posts_json --incremental --quiet
 ```
 
 Пакетный режим:
 
 - обходит `../data` рекурсивно, ищет `*.html`;
 - для каждого файла пишет JSON **по тому же** относительному пути
-  в `--cache` (e.g. `../cache/2007/10/13429.json`), создавая подпапки;
+  в `--output` (e.g. `../posts_json/2007/10/13429.json`), создавая подпапки;
 - `--incremental` пропускает файлы, чей кэш не старее исходника;
 - печатает сводку: распределение по `visibility`, сколько без
   `datetime` / `title` / `tags`, сколько с катами, etc.
@@ -126,7 +126,7 @@ python3 -m extractor.batch ../data --cache ../cache --incremental --quiet
 ## Кэш как регрессионный тест
 
 JSON-кэш сериализуется детерминированно. При изменении селекторов
-полезно прогнать `--cache` в отдельную папку и сделать `diff -r`
+полезно прогнать `--output` в отдельную папку и сделать `diff -r`
 со старой — сразу видно, на каких постах поведение поменялось.
 
 ## Известные ограничения
