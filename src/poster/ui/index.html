@@ -39,9 +39,11 @@
       </label>
 
       <label class="field">Теги (через запятую)
-        <input id="f-tags" type="text" list="tags-list" placeholder="юмор, работа, музыка">
+        <div class="tags-input-wrap">
+          <input id="f-tags" type="text" autocomplete="off" placeholder="юмор, работа, музыка">
+          <div id="tags-suggest" class="tags-suggest" hidden></div>
+        </div>
       </label>
-      <datalist id="tags-list"></datalist>
 
       <div class="row row-meta">
         <label class="field">Настроение

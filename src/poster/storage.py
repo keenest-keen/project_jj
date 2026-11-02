@@ -3,6 +3,21 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+import html as _html
+import re
+
+_TAG_RE = re.compile(r'<[^>]+>')
+
+
+def _plain_text(s: str) -> str:
+    """Грубо, но быстро вытаскивает текст из HTML-фрагмента поста.
+
+    Регулярка не идеальна для «плохого» HTML (незакрытые теги, `>` внутри
+    комментариев), но для поиска по содержимому постов — 99% случаев.
+    """
+    if not s:
+        return ""
+    return _html.unescape(_TAG_RE.sub(' ', s))
 
 
 def iter_json_files(root: Path):
@@ -20,21 +35,40 @@ def extract_post(p: Path, root: Path) -> dict[str, Any] | None:
             d = json.load(f)
     except Exception:
         return None
+
     pid = d.get("id")
     if not isinstance(pid, int) or pid <= 0:
         try:
             pid = int(p.stem)
         except ValueError:
             return None
+
     meta = d.get("meta_fields") or {}
+    title = str(d.get("title") or "")
+    datetime_str = str(d.get("datetime") or "")
+    tags = [str(t) for t in (d.get("tags") or [])]
+    music = str(meta.get("music") or "")
+
+    article = d.get("article") or {}
+    visible = str(article.get("visible_html") or "")
+    cut_parts = [str(c.get("html") or "") for c in (article.get("cuts") or [])]
+    body_text = _plain_text(visible + "\n" + "\n".join(cut_parts))
+
+    # Единый lowercased-индекс: заголовок + музыка + теги + дата + id
+    # + plain text видимого тела и тела под катом.
+    search_blob = " ".join(
+        [title, music, " ".join(tags), datetime_str, str(pid), body_text]
+    ).lower()
+
     return {
         "id": pid,
-        "title": str(d.get("title") or ""),
-        "datetime": str(d.get("datetime") or ""),
-        "tags": [str(t) for t in (d.get("tags") or [])],
+        "title": title,
+        "datetime": datetime_str,
+        "tags": tags,
         "visibility": str(d.get("visibility") or ""),
-        "music": str(meta.get("music") or ""),
+        "music": music,
         "relpath": str(p.relative_to(root)),
+        "search_blob": search_blob,
     }
 
 

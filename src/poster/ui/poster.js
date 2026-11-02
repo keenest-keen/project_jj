@@ -22,6 +22,28 @@
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[c]);
 
+  function plainText(s) {
+    if (!s) return '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = s;
+    return tmp.textContent || '';
+  }
+
+  // Эквивалент Python-логики из extract_post — нужен, чтобы после сохранения
+  // обновлённого поста сразу работал поиск по его новому содержимому
+  // (без перезапуска и повторного скана папки).
+  function buildSearchBlob(entry) {
+    const body = plainText(entry.visible_html) + ' ' + plainText(entry.cut_html);
+    return [
+      entry.title || '',
+      entry.music || '',
+      (entry.tags || []).join(' '),
+      entry.datetime || '',
+      String(entry.id || ''),
+      body,
+    ].join(' ').toLowerCase();
+  }
+
   function setStatus(msg, kind = '') {
     const el = $('#status');
     el.textContent = msg || '';
@@ -120,6 +142,27 @@
     });
   }
 
+  // Обёртка над dangerouslyPasteHTML: Quill нормализует <img src> через
+  // document.baseURI, из-за чего пути вида "/media/..." превращаются в "//:0".
+  // Запоминаем исходные src до пасты и восстанавливаем после (порядок <img>
+  // сохраняется — этого достаточно для сценария "переключить rich ↔ raw").
+  function richSetHtml(which, html) {
+    const htmlStr = html || '';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = htmlStr;
+    const origSrcs = Array.from(tmp.querySelectorAll('img'))
+      .map((img) => img.getAttribute('src') || '');
+
+    state.quill[which].clipboard.dangerouslyPasteHTML(htmlStr);
+
+    const imgs = state.quill[which].root.querySelectorAll('img');
+    imgs.forEach((img, i) => {
+      const orig = origSrcs[i];
+      if (!orig) return;
+      if (img.getAttribute('src') !== orig) img.setAttribute('src', orig);
+    });
+  }
+
   function getEditorHTML(which) {
     if (state.rawMode[which]) return $(`#editor-${which}-raw`).value;
     return state.quill[which].root.innerHTML;
@@ -128,7 +171,7 @@
   function setEditorHTML(which, html) {
     const v = html || '';
     if (state.rawMode[which]) $(`#editor-${which}-raw`).value = v;
-    else state.quill[which].clipboard.dangerouslyPasteHTML(v);
+    else richSetHtml(which, v);
   }
 
   function setMode(which, mode) {
@@ -145,7 +188,7 @@
     } else {
       rawArea.hidden = true;
       quillHost.hidden = false;
-      state.quill[which].clipboard.dangerouslyPasteHTML(html);
+      richSetHtml(which, html);
     }
     $$(`.mode-toggle[data-target="${which}"] .mode-btn`).forEach((b) => {
       b.classList.toggle('active', b.dataset.mode === mode);
@@ -160,11 +203,7 @@
     const q = filter.trim().toLowerCase();
     const items = state.posts.filter((p) => {
       if (!q) return true;
-      return (p.title || '').toLowerCase().includes(q)
-          || (p.datetime || '').toLowerCase().includes(q)
-          || (p.music || '').toLowerCase().includes(q)
-          || (p.tags || []).some((t) => t.toLowerCase().includes(q))
-          || String(p.id).includes(q);
+      return (p.search_blob || '').includes(q);
     });
     list.innerHTML = items.map((p) => `
       <div class="post-item${p.id === state.currentId ? ' active' : ''}" data-id="${p.id}" title="${esc(p.relpath)}">
@@ -248,6 +287,100 @@
     else { img.removeAttribute('src'); img.hidden = true; }
   }
 
+  // -------------------- теги: кастомный автокомплит --------------------
+
+  function setupTagsAutocomplete() {
+    const input = $('#f-tags');
+    const box = $('#tags-suggest');
+    let activeIdx = -1;
+    let items = [];
+
+    function hide() {
+      box.hidden = true;
+      box.innerHTML = '';
+      activeIdx = -1;
+      items = [];
+    }
+
+    function currentToken(value) {
+      const idx = value.lastIndexOf(',');
+      return idx >= 0 ? value.slice(idx + 1) : value;
+    }
+
+    function render(token) {
+      const q = token.trim().toLowerCase();
+      if (!q) { hide(); return; }
+      const used = new Set(
+        input.value.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+      );
+      items = state.tags
+        .filter((t) => t.toLowerCase().includes(q))
+        .filter((t) => !used.has(t.toLowerCase()) || t.toLowerCase() === q)
+        .slice(0, 60);
+      if (!items.length) { hide(); return; }
+      box.innerHTML = items.map((t, i) =>
+        `<div class="item" data-idx="${i}">${esc(t)}</div>`
+      ).join('');
+      box.hidden = false;
+      activeIdx = -1;
+    }
+
+    function commit(tagText) {
+      const value = input.value;
+      const idx = value.lastIndexOf(',');
+      const head = idx >= 0 ? value.slice(0, idx + 1).replace(/\s+$/, '') : '';
+      input.value = (head ? head + ' ' : '') + tagText + ', ';
+      hide();
+      input.focus();
+      state.dirty = true;
+      setStatus('', '');
+    }
+
+    function updateActive() {
+      box.querySelectorAll('.item').forEach((el, i) => {
+        el.classList.toggle('active', i === activeIdx);
+      });
+      if (activeIdx >= 0) {
+        const el = box.querySelector(`.item[data-idx="${activeIdx}"]`);
+        if (el) el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+
+    input.addEventListener('input', () => render(currentToken(input.value)));
+    input.addEventListener('focus', () => render(currentToken(input.value)));
+
+    input.addEventListener('keydown', (e) => {
+      if (box.hidden) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIdx = Math.min(items.length - 1, activeIdx + 1);
+        updateActive();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIdx = Math.max(-1, activeIdx - 1);
+        updateActive();
+      } else if (e.key === 'Enter' && activeIdx >= 0) {
+        e.preventDefault();
+        commit(items[activeIdx]);
+      } else if (e.key === 'Escape') {
+        hide();
+      }
+    });
+
+    // mousedown (а не click) — чтобы фокус не ушёл с input до обработки
+    box.addEventListener('mousedown', (e) => {
+      const item = e.target.closest('.item');
+      if (!item) return;
+      e.preventDefault();
+      const i = Number(item.dataset.idx);
+      if (items[i]) commit(items[i]);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.tags-input-wrap')) hide();
+    });
+  }
+
   function guardUnsaved() {
     if (!state.dirty) return true;
     return window.confirm('Есть несохранённые изменения. Продолжить без сохранения?');
@@ -287,6 +420,7 @@
       visibility: payload.visibility,
       music: payload.music,
       relpath: res.path,
+      search_blob: buildSearchBlob(payload),
     };
     if (idx >= 0) state.posts[idx] = entry;
     else state.posts.push(entry);
@@ -297,7 +431,6 @@
     const newTags = new Set(state.tags);
     for (const t of payload.tags) newTags.add(t);
     state.tags = [...newTags].sort();
-    $('#tags-list').innerHTML = state.tags.map((t) => `<option value="${esc(t)}"></option>`).join('');
 
     renderSidebar($('#search').value);
 
@@ -373,7 +506,7 @@
     state.expandDefault = expandDefault;
 
     initEditors(Quill);
-    $('#tags-list').innerHTML = '';
+    setupTagsAutocomplete();
     const moodSel = $('#f-mood-icon');
     for (const icon of state.moodIcons) {
       const opt = document.createElement('option');
@@ -386,13 +519,14 @@
     // основной долгий шаг — с прогрессом
     await bootstrap();
 
-    $('#tags-list').innerHTML = state.tags
-      .map((t) => `<option value="${esc(t)}"></option>`)
-      .join('');
-
     // события
     $('#btn-new').addEventListener('click', newPost);
-    $('#search').addEventListener('input', (e) => renderSidebar(e.target.value));
+    let searchTimer = null;
+    $('#search').addEventListener('input', (e) => {
+      const value = e.target.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => renderSidebar(value), 120);
+    });
     $('#f-has-cut').addEventListener('change', toggleCutFields);
     $('#form').addEventListener('submit', saveCurrent);
     $('#btn-preview').addEventListener('click', showPreview);
