@@ -134,12 +134,87 @@
     state.quill.visible.on('text-change', () => { state.dirty = true; });
     state.quill.cut.on('text-change', () => { state.dirty = true; });
 
+    setupLinkHandler(state.quill.visible);
+    setupLinkHandler(state.quill.cut);
+
     $$('.mode-toggle').forEach((toggle) => {
       const which = toggle.dataset.target;
       toggle.querySelectorAll('.mode-btn').forEach((btn) => {
         btn.addEventListener('click', () => setMode(which, btn.dataset.mode));
       });
     });
+  }
+
+  function openLinkDialog(onSubmit) {
+    const overlay = document.createElement('div');
+    overlay.className = 'link-dialog-overlay';
+    overlay.innerHTML = `
+      <div class="link-dialog">
+        <div class="link-dialog-title">Адрес ссылки</div>
+        <input type="text" class="link-dialog-input" placeholder="https://… или /path">
+        <div class="link-dialog-actions">
+          <button type="button" class="btn btn-primary link-dialog-ok">OK</button>
+          <button type="button" class="btn link-dialog-cancel">Отмена</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('.link-dialog-input');
+    input.focus();
+
+    function close() { overlay.remove(); }
+
+    function submit() {
+      const url = input.value.trim();
+      close();
+      onSubmit(url);
+    }
+
+    overlay.querySelector('.link-dialog-ok').addEventListener('click', submit);
+    overlay.querySelector('.link-dialog-cancel').addEventListener('click', close);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submit(); }
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+    });
+    overlay.addEventListener('mousedown', (e) => {
+      if (e.target === overlay) close();
+    });
+  }
+
+  function setupLinkHandler(quill) {
+    const toolbar = quill.getModule('toolbar');
+    toolbar.addHandler('link', () => {
+      const range = quill.getSelection(true);
+      if (!range || range.length === 0) {
+        setStatus('Сначала выделите текст, который станет ссылкой', 'err');
+        return;
+      }
+      openLinkDialog((url) => {
+        if (!url) return;
+        quill.formatText(range.index, range.length, 'link', url, 'user');
+        setStatus('Ссылка добавлена', 'ok');
+      });
+    });
+  }
+
+  // Quill 2 в Link.sanitize() прогоняет URL через <a> и проверяет протокол по
+  // whitelist (http/https/mailto/tel/data). Под file:// base URI относительный
+  // путь "/123" становится "file:///123" → file: не в whitelist → "about:blank".
+  // Пропускаем URL без схемы (относительные пути) как есть; остальные — в
+  // стандартный sanitize Quill.
+  function patchQuillLinkSanitize(Quill) {
+    const Link = Quill.import('formats/link');
+    if (Link.__patchedForRelativeUrls) return;
+    const original = Link.sanitize;
+    Link.sanitize = function (url) {
+      if (!url) return url;
+      if (!/^[a-z][a-z0-9+.\-]*:/i.test(url)) {
+        return url; // относительный путь: /x, page.html, ../x, #anchor
+      }
+      return original.call(this, url);
+    };
+    Link.__patchedForRelativeUrls = true;
   }
 
   // Обёртка над dangerouslyPasteHTML: Quill нормализует <img src> через
@@ -505,6 +580,7 @@
     state.moodIcons = moodIcons;
     state.expandDefault = expandDefault;
 
+    patchQuillLinkSanitize(Quill);
     initEditors(Quill);
     setupTagsAutocomplete();
     const moodSel = $('#f-mood-icon');
