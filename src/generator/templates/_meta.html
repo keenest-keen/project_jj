@@ -23,7 +23,7 @@
   {% if post.tags %}
     <li>
       <span class="meta-label">Теги:</span>
-      {% for t in post.tags -%}
+      {% for t in post.tags|sort(case_sensitive=false) -%}
         <a class="meta-tag" href="{{ base }}tag/{{ t|tag_slug }}.html">{{ t }}</a>{% if not loop.last %}, {% endif %}
       {%- endfor %}
     </li>
